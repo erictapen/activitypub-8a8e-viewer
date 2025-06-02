@@ -1,0 +1,3 @@
+- fetch an Event object through ActivityPub Client API
+- Display the title
+- Do some first validation and annotation steps

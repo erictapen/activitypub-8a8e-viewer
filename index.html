@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>ActivityPub FEP-8a8e viewer</title>
+  <meta property="og:title" content="ActivityPub FEP-8a8e viewer" />
+  <meta property="og:description" content="View any ActivityPub event object and check it for FEP-8a8e standard compliance" />
+  <meta property="og:url" content="TODO" />
+  <meta property="og:type" content="website" />
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<body>
+  <div class="page-width">
+    <h1>Verify your ActivityStreams Event object for FEP-8a8e&nbsp;compliance</h1>
+    <p>
+      <a href="https://codeberg.org/fediverse/fep/src/branch/main/fep/8a8e/fep-8a8e.md">FEP-8a8e</a> is a standardisation attempt about the way the Fediverse talks about Events.
+    </p>
+    <search>
+      <input
+        type="search"
+        id="ap-input"
+        autocomplete="off"
+        spellcheck="false"
+        placeholder="Enter any URL here…" />
+      <section>
+        <pre>
+          <code id="searchresult">
+          </code>
+        </pre>
+      </section>
+    </search>
+  </div>
+  <script type="module">
+    import { handleApUrl } from './dist/index.js';
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("ap-input")?.addEventListener("input", handleApUrl);
+    });
+  </script>
+</body>
+</html>

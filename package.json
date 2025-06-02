@@ -1,0 +1,11 @@
+{
+  "name": "typescript-website",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "tsc",
+    "start": "darkhttpd ."
+  },
+  "devDependencies": {
+    "typescript": "^4.5.5"
+  }
+}
