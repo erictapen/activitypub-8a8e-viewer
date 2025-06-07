@@ -1,3 +1,9 @@
+export function init() {
+  document.getElementById("ap-input")?.addEventListener("input", handleApUrl);
+  let input = document.getElementById("ap-input") as HTMLInputElement;
+  input.value = window.location.pathname.slice(1);
+  input.dispatchEvent(new Event("input", {}));
+}
 
 export function handleApUrl(_: Event) {
   let input = document.getElementById("ap-input") as HTMLInputElement;
@@ -10,5 +16,5 @@ export function handleApUrl(_: Event) {
     }
     searchResult.innerHTML += "</ul>";
   });
-  window.history.pushState({}, "", `/${input.value}`);
+  window.history.replaceState({}, "", `/${input.value}`);
 }
