@@ -31,7 +31,7 @@
           nativeBuildInputs = with pkgs; [
             typescript
             nodejs
-            darkhttpd
+            (import ./nginx.nix pkgs)
           ];
         };
 
