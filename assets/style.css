@@ -20,6 +20,18 @@ input#ap-input {
   overflow: hidden;
 }
 
+#searchresult {
+  font-size: 140%;
+}
+
+#searchresult summary::marker {
+  content: "";
+}
+
+#searchresult code {
+  white-space: pre-wrap;
+}
+
 /* Desktop */
 @media (min-width: 50em) {
 }
