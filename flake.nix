@@ -39,6 +39,8 @@
           src = ./.;
           hooks = {
             nixfmt-rfc-style.enable = true;
+            denofmt.enable = true;
+            denolint.enable = true;
           };
         };
 
