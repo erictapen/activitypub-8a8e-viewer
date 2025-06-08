@@ -32,6 +32,10 @@ input#ap-input {
   white-space: pre-wrap;
 }
 
+.unselectable {
+  user-select: none;
+}
+
 /* Desktop */
 @media (min-width: 50em) {
 }

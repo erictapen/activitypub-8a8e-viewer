@@ -61,9 +61,12 @@ function isValidUrl(str: string): boolean {
 // };
 //
 // type ValidationResult = Violation | Warning | Correct | Note;
+//
+
+type AnnotationKind = "Violation" | "Warning" | "Note" | "Correct";
 
 type JsonAnnotation = {
-  kind: "Violation" | "Warning" | "Note" | "Correct";
+  kind: AnnotationKind;
   id: string | null;
   text: string;
   reference: string | null;
@@ -262,19 +265,27 @@ function validate(
   return result;
 }
 
-const annotationSignifiers: Record<string, string> = {
+const annotationSignifiers: Record<AnnotationKind, string> = {
   "Violation": "🚫",
   "Warning": "⚠️",
   "Note": "📝",
   "Correct": "✅",
 };
 
-function details(summaryString: string, contentString: string): HTMLElement {
+function details(
+  kind: AnnotationKind,
+  summaryString: string,
+  contentString: string,
+): HTMLElement {
   const details = document.createElement("details");
   const code = document.createElement("code");
   code.textContent = summaryString;
   const summary = document.createElement("summary");
   summary.appendChild(code);
+  const signifier = document.createElement("span");
+  signifier.classList.add("unselectable");
+  signifier.textContent = annotationSignifiers[kind];
+  summary.appendChild(signifier);
   details.appendChild(summary);
   details.appendChild(document.createTextNode(contentString));
   return details;
@@ -288,9 +299,8 @@ function renderObjectName(
 ): HTMLElement {
   if (isPrimitive(value) && isAnnotation(vRes)) {
     return details(
-      `${"  ".repeat(indent)}"${name}": ${JSON.stringify(value)}, ${
-        annotationSignifiers[vRes.kind]
-      }`,
+      vRes.kind,
+      `${"  ".repeat(indent)}"${name}": ${JSON.stringify(value)},`,
       "placeholder",
     );
   } else if (
@@ -387,9 +397,8 @@ function renderValidationResult(
     return result;
   } else if (isPrimitive(value) && isAnnotation(vRes)) {
     return details(
-      `${"  ".repeat(indent)}${JSON.stringify(value)}, ${
-        annotationSignifiers[vRes.kind]
-      }`,
+      vRes.kind,
+      `${"  ".repeat(indent)}${JSON.stringify(value)},`,
       "placeholder",
     );
   } else {
