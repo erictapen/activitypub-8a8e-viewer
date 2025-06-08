@@ -273,9 +273,8 @@ const annotationSignifiers: Record<AnnotationKind, string> = {
 };
 
 function details(
-  kind: AnnotationKind,
   summaryString: string,
-  contentString: string,
+  vRes: JsonAnnotation,
 ): HTMLElement {
   const details = document.createElement("details");
   const code = document.createElement("code");
@@ -284,10 +283,10 @@ function details(
   summary.appendChild(code);
   const signifier = document.createElement("span");
   signifier.classList.add("unselectable");
-  signifier.textContent = annotationSignifiers[kind];
+  signifier.textContent = annotationSignifiers[vRes.kind];
   summary.appendChild(signifier);
   details.appendChild(summary);
-  details.appendChild(document.createTextNode(contentString));
+  details.appendChild(document.createTextNode(vRes.text));
   return details;
 }
 
@@ -299,9 +298,8 @@ function renderObjectName(
 ): HTMLElement {
   if (isPrimitive(value) && isAnnotation(vRes)) {
     return details(
-      vRes.kind,
       `${"  ".repeat(indent)}"${name}": ${JSON.stringify(value)},`,
-      "placeholder",
+      vRes,
     );
   } else if (
     isJsonObject(value) && isJsonObject(vRes) && (!isAnnotation(vRes))
@@ -397,9 +395,8 @@ function renderValidationResult(
     return result;
   } else if (isPrimitive(value) && isAnnotation(vRes)) {
     return details(
-      vRes.kind,
       `${"  ".repeat(indent)}${JSON.stringify(value)},`,
-      "placeholder",
+      vRes,
     );
   } else {
     // This should be unreachable
