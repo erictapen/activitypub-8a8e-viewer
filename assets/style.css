@@ -36,6 +36,22 @@ input#ap-input {
   user-select: none;
 }
 
+details.Violation .annotation {
+  color: red;
+}
+
+details.Warning .annotation {
+  color: yellow;
+}
+
+details.Note .annotation {
+  color: grey;
+}
+
+details.Correct .annotation {
+  color: green;
+}
+
 /* Desktop */
 @media (min-width: 50em) {
 }

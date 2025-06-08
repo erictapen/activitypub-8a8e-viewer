@@ -277,6 +277,7 @@ function details(
   vRes: JsonAnnotation,
 ): HTMLElement {
   const details = document.createElement("details");
+  details.classList.add(vRes.kind);
   const code = document.createElement("code");
   code.textContent = summaryString;
   const summary = document.createElement("summary");
@@ -286,7 +287,10 @@ function details(
   signifier.textContent = annotationSignifiers[vRes.kind];
   summary.appendChild(signifier);
   details.appendChild(summary);
-  details.appendChild(document.createTextNode(vRes.text));
+  const annotation = document.createElement("div");
+  annotation.classList.add("annotation");
+  annotation.textContent = vRes.text;
+  details.appendChild(annotation);
   return details;
 }
 
