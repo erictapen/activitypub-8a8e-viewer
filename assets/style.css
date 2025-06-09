@@ -22,6 +22,7 @@ input#ap-input {
 
 #searchresult {
   font-size: 140%;
+  background: lightgrey;
 }
 
 #searchresult summary::marker {
@@ -38,11 +39,20 @@ input#ap-input {
 
 details summary {
   cursor: pointer;
-  transition: margin 150ms ease-out;
 }
 
 details[open] summary {
-  margin-bottom: 0.2em;
+  background: #bbc2c8;
+}
+
+details .annotation {
+  background: white;
+  box-shadow: inset 0px 10px 10px -6px lightgrey;
+  transition: margin 150ms ease-out;
+}
+
+details[open] .annotation {
+  margin-top: 0.2em;
 }
 
 details.Violation .annotation {
