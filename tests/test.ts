@@ -42,11 +42,11 @@ function compareAnnotation(
   }
 }
 
-for (const { validate, tests } of rules) {
-  Deno.test("Rule", () => {
+rules.forEach(({ validate, tests }, index) => {
+  Deno.test(`Rule ${index + 1}`, () => {
     for (const { value, result } of tests) {
       assert(isJsonObject(value) && !isAnnotation(value));
       compareAnnotation(validate(value), result);
     }
   });
-}
+});
