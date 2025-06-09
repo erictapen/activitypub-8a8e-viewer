@@ -33,36 +33,6 @@ function isValidUrl(str: string): boolean {
   }
 }
 
-// type Violation = {
-//   kind: "Violation";
-//   id: string;
-//   text: string;
-//   reference: string;
-// };
-//
-// type Warning = {
-//   kind: "Warning";
-//   id: string;
-//   text: string;
-//   reference: string;
-// };
-//
-// type Note = {
-//   kind: "Note";
-//   id: string;
-//   text: string;
-//   reference: string;
-// };
-//
-// type Correct = {
-//   kind: "Correct";
-//   text: string;
-//   reference: string;
-// };
-//
-// type ValidationResult = Violation | Warning | Correct | Note;
-//
-
 type AnnotationKind = "Violation" | "Warning" | "Note" | "Correct";
 
 type JsonAnnotation = {
@@ -109,8 +79,9 @@ function isPrimitive(
 type JsonValue<T> = T | { [key: string]: JsonValue<T> } | JsonValue<T>[];
 
 function isJsonValue<T>(value: unknown): value is JsonValue<T> {
-  return isJsonObject(value) || isJsonArray(value) || isPrimitive(value) ||
-    isAnnotation(value);
+  return isJsonObject(value) || isJsonArray(value) ||
+    // This is technically not correct but good enough for now
+    (isPrimitive(value) || isAnnotation(value));
 }
 
 function isJsonObject<T>(
