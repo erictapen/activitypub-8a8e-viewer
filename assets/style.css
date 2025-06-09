@@ -275,11 +275,81 @@
 
 body {
     font-family: "IBM Plex Sans";
+    margin: 0;
     padding-bottom: 25em;
 }
 
 code {
     font-family: "IBM Plex Mono";
+}
+
+#disclaimer {
+  text-align: center;
+  background: #f2f1ac;
+  padding: 0;
+  padding: 0.25em;
+  font-style: italic;
+}
+
+#js-disclaimer {
+  display: block;
+  position: relative;
+  width: 320px;
+  height: 240px;
+  border: 1px solid black;
+  margin: 2em auto;
+}
+
+#js-disclaimer .logo {
+  position: absolute;
+  width: 6em;
+  height: 3em;
+  font-family: "IBM Plex Mono";
+  font-weight: 900;
+  font-style: italic;
+  animation:
+    js-disclaimer-x 3s linear infinite alternate,
+    js-disclaimer-y 4s linear infinite alternate,
+    js-disclaimer-color-x 15s step-start infinite,
+    js-disclaimer-color-y 20s step-start infinite;
+  color:
+    hsl(calc(
+      360 / 25 * (var(--color-y) * 5 + var(--color-x)) * 1deg
+    ) 100% 50%);
+}
+
+#js-disclaimer-text {
+  text-align: center;
+  font-style: italic;
+  color: grey;
+}
+
+@keyframes js-disclaimer-x {
+  from { left: 0; }
+  to { left: calc(100% - 6em); }
+}
+
+@keyframes js-disclaimer-y {
+  from { top: 0; }
+  to { top: calc(100% - 3em); }
+}
+
+@keyframes js-disclaimer-color-x {
+  from { --color--x: 0; }
+  20% { --color-x: 2; }
+  40% { --color-x: 4; }
+  60% { --color-x: 1; }
+  80% { --color-x: 3; }
+  to { --color-x: 0; }
+}
+
+@keyframes js-disclaimer-color-y {
+  from { --color-y: 0; }
+  20% { --color-y: 2; }
+  40% { --color-y: 4; }
+  60% { --color-y: 1; }
+  80% { --color-y: 3; }
+  to { --color-y: 0; }
 }
 
 .page-width {
