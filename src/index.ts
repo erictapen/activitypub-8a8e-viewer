@@ -28,7 +28,7 @@ export async function handleApObject(_: Event) {
         return response.json();
       },
     ).catch((_error) => {
-      #TODO;
+      // TODO
     });
     globalThis.history.replaceState({}, "", `/${input.value}`);
   } catch {
@@ -306,10 +306,13 @@ function renderObjectName(
   value: JsonValue<JsonPrimitive>,
   vRes: JsonValue<JsonAnnotation>,
   indent: number,
+  last: boolean,
 ): HTMLElement {
   if (isPrimitive(value) && isAnnotation(vRes)) {
     return details(
-      `${"  ".repeat(indent)}"${name}": ${JSON.stringify(value)},`,
+      `${"  ".repeat(indent)}"${name}": ${JSON.stringify(value)}${
+        last ? "" : ","
+      }`,
       vRes,
     );
   } else if (
@@ -319,7 +322,9 @@ function renderObjectName(
     const open = document.createElement("code");
     open.textContent = `${"  ".repeat(indent)}"${name}": {\n`;
     result.appendChild(open);
-    for (const name in value) {
+    const names = Object.keys(value);
+    for (let i = 0, len = names.length; i < len; i++) {
+      const name = names[i] as string;
       if (value[name] !== undefined && vRes[name] !== undefined) {
         result.appendChild(
           renderObjectName(
@@ -327,12 +332,13 @@ function renderObjectName(
             value[name] as JsonValue<JsonPrimitive>,
             vRes[name] as JsonValue<JsonAnnotation>,
             indent + 1,
+            i == len - 1,
           ),
         );
       }
     }
     const close = document.createElement("code");
-    close.textContent = `${"  ".repeat(indent)}},\n`;
+    close.textContent = `${"  ".repeat(indent)}}${last ? "" : ","}\n`;
     result.appendChild(close);
     return result;
   } else if (isJsonArray(value) && isJsonArray(vRes)) {
@@ -346,11 +352,12 @@ function renderObjectName(
           value[i] as JsonValue<JsonPrimitive>,
           vRes[i] as JsonValue<JsonAnnotation>,
           indent + 1,
+          i == len - 1,
         ),
       );
     }
     const close = document.createElement("code");
-    close.textContent = `${" ".repeat(indent * 2)}],\n`;
+    close.textContent = `${" ".repeat(indent * 2)}]${last ? "" : ","}\n`;
     result.appendChild(close);
     return result;
   } else {
@@ -363,13 +370,16 @@ function renderValidationResult(
   value: JsonValue<JsonPrimitive>,
   vRes: JsonValue<JsonAnnotation>,
   indent: number = 0,
+  last: boolean = false,
 ): HTMLElement {
   if (isJsonObject(value) && isJsonObject(vRes) && (!isAnnotation(vRes))) {
     const result = document.createElement("div");
     const open = document.createElement("code");
     open.textContent = `${"  ".repeat(indent)}{\n`;
     result.appendChild(open);
-    for (const name in value) {
+    const names = Object.keys(value);
+    for (let i = 0, len = names.length; i < len; i++) {
+      const name = names[i] as string;
       if (value[name] !== undefined && vRes[name] !== undefined) {
         result.appendChild(
           renderObjectName(
@@ -377,6 +387,7 @@ function renderValidationResult(
             value[name] as JsonValue<JsonPrimitive>,
             vRes[name] as JsonValue<JsonAnnotation>,
             indent + 1,
+            i == len - 1,
           ),
         );
       }
@@ -397,16 +408,17 @@ function renderValidationResult(
           value[i] as JsonValue<JsonPrimitive>,
           vRes[i] as JsonValue<JsonAnnotation>,
           indent + 1,
+          i == len - 1,
         ),
       );
     }
     const close = document.createElement("code");
-    close.textContent = `${" ".repeat(indent * 2)}],\n`;
+    close.textContent = `${" ".repeat(indent * 2)}]${last ? "" : ","}\n`;
     result.appendChild(close);
     return result;
   } else if (isPrimitive(value) && isAnnotation(vRes)) {
     return details(
-      `${"  ".repeat(indent)}${JSON.stringify(value)},`,
+      `${"  ".repeat(indent)}${JSON.stringify(value)}${last ? "" : ","}`,
       vRes,
     );
   } else {
