@@ -35,14 +35,14 @@ function isValidUrl(str: string): boolean {
 
 type AnnotationKind = "Violation" | "Warning" | "Note" | "Correct";
 
-type JsonAnnotation = {
+export type JsonAnnotation = {
   kind: AnnotationKind;
   id: string | null;
   text: string;
   reference: string | null;
 };
 
-function isAnnotation(value: unknown): value is JsonAnnotation {
+export function isAnnotation(value: unknown): value is JsonAnnotation {
   if (
     typeof value === "object" &&
     value !== null &&
@@ -76,7 +76,7 @@ function isPrimitive(
   );
 }
 
-type JsonValue<T> = T | { [key: string]: JsonValue<T> } | JsonValue<T>[];
+export type JsonValue<T> = T | { [key: string]: JsonValue<T> } | JsonValue<T>[];
 
 function isJsonValue<T>(value: unknown): value is JsonValue<T> {
   return isJsonObject(value) || isJsonArray(value) ||
@@ -84,14 +84,14 @@ function isJsonValue<T>(value: unknown): value is JsonValue<T> {
     (isPrimitive(value) || isAnnotation(value));
 }
 
-function isJsonObject<T>(
+export function isJsonObject<T>(
   value: unknown,
 ): value is { [key: string]: JsonValue<T> } {
   return !Array.isArray(value) && typeof value === "object" && value !== null &&
     Object.values(value).reduce((acc, v) => acc && isJsonValue(v), true);
 }
 
-function isJsonArray<T>(value: unknown): value is JsonValue<T>[] {
+export function isJsonArray<T>(value: unknown): value is JsonValue<T>[] {
   return Array.isArray(value) &&
     value.reduce((acc, v) => acc && isJsonValue(v), true);
 }
@@ -108,7 +108,7 @@ type Rule = {
   tests: Test[];
 };
 
-const rules: Rule[] = [
+export const rules: Rule[] = [
   {
     validate: (self) => {
       if (self["timezone"] === null) {
@@ -153,10 +153,10 @@ const rules: Rule[] = [
     },
     tests: [{
       value: { timezone: null },
-      result: { timezone: ["InvalidTimeZone"] },
+      result: { timezone: "NoTimezoneSet" },
     }, {
       value: {},
-      result: { timezone: ["InvalidTimeZone"] },
+      result: { timezone: "InvalidTimezone" },
     }],
   },
   {
@@ -177,7 +177,7 @@ const rules: Rule[] = [
     },
     tests: [{
       value: { someattribute: "somevalue" },
-      result: { someattribute: ["UnknownToplevelName"] },
+      result: { someattribute: "UnknownToplevelName" },
     }],
   },
   {

@@ -32,6 +32,7 @@
             typescript
             nodejs
             (import ./nginx.nix pkgs)
+            deno
           ];
         };
 

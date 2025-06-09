@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "scripts": {
     "build": "tsc",
-    "start": "darkhttpd ."
+    "start": "darkhttpd .",
+    "test": "deno test --config tsconfig.json"
   },
   "devDependencies": {
     "typescript": "^4.5.5"
