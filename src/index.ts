@@ -1,24 +1,60 @@
 export function init() {
-  document.getElementById("ap-input")?.addEventListener("input", handleApUrl);
+  document.getElementById("ap-input")?.addEventListener(
+    "input",
+    handleApObject,
+  );
   const input = document.getElementById("ap-input") as HTMLInputElement;
   input.value = globalThis.location.pathname.slice(1);
   input.dispatchEvent(new Event("input", {}));
 }
 
-export function handleApUrl(_: Event) {
+export async function handleApObject(_: Event) {
   const input = document.getElementById("ap-input") as HTMLInputElement;
   const searchResult = document.getElementById("searchresult") as HTMLElement;
-  fetch(input.value, { headers: { Accept: "application/activity+json" } }).then(
-    async (response) => {
-      const obj = await response.json();
-      const validationResult = validate(obj);
-      console.log(validationResult);
-      searchResult.replaceChildren(
-        renderValidationResult(obj, validationResult),
-      );
-    },
+  if (input.value === "") {
+    const emptyData =
+      (document.getElementById("empty-data") as HTMLTemplateElement).content
+        .cloneNode(true);
+    searchResult.replaceChildren(emptyData);
+    return;
+  }
+  let json: JsonValue<JsonPrimitive>;
+  try {
+    new URL(input.value);
+    json = await fetch(input.value, {
+      headers: { Accept: "application/activity+json" },
+    }).then(
+      (response) => {
+        return response.json();
+      },
+    ).catch((_error) => {
+      #TODO;
+    });
+    globalThis.history.replaceState({}, "", `/${input.value}`);
+  } catch {
+    try {
+      json = JSON.parse(input.value);
+    } catch {
+      const invalidData =
+        (document.getElementById("invalid-data") as HTMLTemplateElement).content
+          .cloneNode(true);
+      searchResult.replaceChildren(invalidData);
+      return;
+    }
+  }
+  if (!isJsonObject(json)) {
+    const invalidActivityStreamsObject = (document.getElementById(
+      "invalid-activitystreams-object",
+    ) as HTMLTemplateElement).content
+      .cloneNode(true);
+    searchResult.replaceChildren(invalidActivityStreamsObject);
+    return;
+  }
+  const validationResult = validate(json);
+  console.log(validationResult);
+  searchResult.replaceChildren(
+    renderValidationResult(json, validationResult),
   );
-  globalThis.history.replaceState({}, "", `/${input.value}`);
 }
 
 const legalTimeZones: string[] = [];

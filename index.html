@@ -30,9 +30,18 @@
         id="ap-input"
         autocomplete="off"
         spellcheck="false"
-        placeholder="Enter any URL here…" />
+        placeholder="Enter any URL or JSON here…" />
       <section id="searchresult">
       </section>
+      <template id="invalid-data">
+        The supplied data is neither a valid URL nor valid JSON…
+      </template>
+      <template id="empty-data">
+        …or pick one of these examples:
+      </template>
+      <template id="invalid-activitystreams-object">
+        The supplied data is valid JSON, but not a valid ActivityStreams object…
+      </template>
     </search>
   </div>
   <script type="module">
