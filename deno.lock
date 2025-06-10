@@ -18,5 +18,12 @@
     "@std/internal@1.0.8": {
       "integrity": "fc66e846d8d38a47cffd274d80d2ca3f0de71040f855783724bb6b87f60891f5"
     }
+  },
+  "workspace": {
+    "packageJson": {
+      "dependencies": [
+        "npm:typescript@^4.5.5"
+      ]
+    }
   }
 }

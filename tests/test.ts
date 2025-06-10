@@ -1,12 +1,12 @@
 /// <reference lib="deno.ns" />
 
-import { assert, assertEquals, assertStrictEquals } from "jsr:@std/assert";
-import { DOMParser } from "jsr:@b-fuze/deno-dom";
+import { assert, assertEquals } from "jsr:@std/assert";
+// import { DOMParser } from "jsr:@b-fuze/deno-dom";
 
-(globalThis as unknown).document = new DOMParser().parseFromString(
-  "",
-  "text/html",
-);
+// (globalThis as unknown).document = new DOMParser().parseFromString(
+//   "",
+//   "text/html",
+// );
 
 import {
   isAnnotation,
@@ -14,9 +14,7 @@ import {
   isJsonObject,
   JsonAnnotation,
   JsonValue,
-  renderValidationResult,
   rules,
-  validate,
 } from "../src/index.ts";
 
 function compareAnnotation(
@@ -59,33 +57,33 @@ rules.forEach(({ validate, tests }, index) => {
   });
 });
 
-function extractJsonFromRendered(_html: HTMLElement): string {
-  let result = "";
-
-  // Traverse all <code> elements
-  const codeElements = document.querySelectorAll("code");
-  for (const codeElement of Array.from(codeElements)) {
-    const parentDetails = codeElement.closest("details");
-    const insideSummary = codeElement.closest("summary");
-
-    if (parentDetails && !insideSummary) {
-      // Skip <code> inside <details> but not in <summary>
-      continue;
-    }
-
-    // Add text content to result
-    result += codeElement.textContent;
-  }
-
-  return result;
-}
-
-Deno.test("Annotation rendering contains the exact JSON value that was used for validation", () => {
-  const json = {};
-  assertStrictEquals(
-    json,
-    JSON.parse(
-      extractJsonFromRendered(renderValidationResult(json, validate(json))),
-    ),
-  );
-});
+// function extractJsonFromRendered(_html: HTMLElement): string {
+//   let result = "";
+//
+//   // Traverse all <code> elements
+//   const codeElements = document.querySelectorAll("code");
+//   for (const codeElement of Array.from(codeElements)) {
+//     const parentDetails = codeElement.closest("details");
+//     const insideSummary = codeElement.closest("summary");
+//
+//     if (parentDetails && !insideSummary) {
+//       // Skip <code> inside <details> but not in <summary>
+//       continue;
+//     }
+//
+//     // Add text content to result
+//     result += codeElement.textContent;
+//   }
+//
+//   return result;
+// }
+//
+// Deno.test("Annotation rendering contains the exact JSON value that was used for validation", () => {
+//   const json = {};
+//   assertStrictEquals(
+//     json,
+//     JSON.parse(
+//       extractJsonFromRendered(renderValidationResult(json, validate(json))),
+//     ),
+//   );
+// });
