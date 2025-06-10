@@ -1,3 +1,8 @@
-- fetch an Event object through ActivityPub Client API
-- Display the title
-- Do some first validation and annotation steps
+# Run locally
+
+Run `nix develop`, then `npm start` and then visit the site at
+http://localhost:8080
+
+# Run tests
+
+Run `nix develop`, then `npm run test`

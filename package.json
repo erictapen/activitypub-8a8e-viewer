@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "build": "tsc",
-    "start": "darkhttpd .",
+    "start": "nginx-8a8e",
     "test": "deno test --config tsconfig.json"
   },
   "devDependencies": {
