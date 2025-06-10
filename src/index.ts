@@ -261,7 +261,7 @@ export const rules: Rule[] = [
   },
 ];
 
-function validate(
+export function validate(
   apObject: Record<string, JsonValue<JsonPrimitive>>,
 ): JsonValue<JsonAnnotation> {
   let result = {};
@@ -366,7 +366,7 @@ function renderObjectName(
   }
 }
 
-function renderValidationResult(
+export function renderValidationResult(
   value: JsonValue<JsonPrimitive>,
   vRes: JsonValue<JsonAnnotation>,
   indent: number = 0,
