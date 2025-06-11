@@ -12,6 +12,7 @@ export async function handleApObject(_: Event) {
   const input = document.getElementById("ap-input") as HTMLInputElement;
   const searchResult = document.getElementById("searchresult") as HTMLElement;
   if (input.value === "") {
+    globalThis.history.replaceState({}, "", "/");
     const emptyData =
       (document.getElementById("empty-data") as HTMLTemplateElement).content
         .cloneNode(true);
@@ -35,6 +36,7 @@ export async function handleApObject(_: Event) {
     try {
       json = JSON.parse(input.value);
     } catch {
+      globalThis.history.replaceState({}, "", "/");
       const invalidData =
         (document.getElementById("invalid-data") as HTMLTemplateElement).content
           .cloneNode(true);
