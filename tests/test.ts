@@ -48,8 +48,8 @@ function compareAnnotation(
   }
 }
 
-rules.forEach(({ validate, tests }, index) => {
-  Deno.test(`Rule ${index + 1}`, () => {
+rules.forEach(({ name, validate, tests }) => {
+  Deno.test(`Rule for ${name}`, () => {
     for (const { value, result } of tests) {
       assert(isJsonObject(value) && !isAnnotation(value));
       compareAnnotation(validate(value), result);

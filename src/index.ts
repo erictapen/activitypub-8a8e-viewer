@@ -138,6 +138,7 @@ type Test = {
 };
 
 type Rule = {
+  name: string;
   validate: (
     self: Record<string, JsonValue<JsonPrimitive>>,
   ) => JsonValue<JsonAnnotation>;
@@ -146,6 +147,7 @@ type Rule = {
 
 export const rules: Rule[] = [
   {
+    name: "timezone attribute",
     validate: (self) => {
       if (self["timezone"] === null) {
         return {
@@ -196,6 +198,7 @@ export const rules: Rule[] = [
     }],
   },
   {
+    name: "remaining attributes",
     validate: (self) => {
       const result: JsonValue<JsonAnnotation> = {};
       for (const name in self) {
@@ -217,6 +220,7 @@ export const rules: Rule[] = [
     }],
   },
   {
+    name: "to attribute",
     validate: (self) => {
       if (isJsonArray(self["to"])) {
         return {
