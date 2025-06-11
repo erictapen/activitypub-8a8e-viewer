@@ -1,5 +1,5 @@
 {
-  "name": "typescript-website",
+  "name": "activitypub-8a8e-viewer",
   "version": "1.0.0",
   "scripts": {
     "build": "tsc",

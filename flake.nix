@@ -42,6 +42,11 @@
             nixfmt-rfc-style.enable = true;
             denofmt.enable = true;
             denolint.enable = true;
+            denotest = {
+              enable = true;
+              entry = "npm run test";
+              pass_filenames = false;
+            };
           };
         };
 
