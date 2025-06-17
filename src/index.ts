@@ -8,55 +8,75 @@ export function init() {
   input.dispatchEvent(new Event("input", {}));
 }
 
+function isUrl(url: string): boolean {
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// `fetch` an URL while accepting `application/activity+json` and signal a few
+// possible error modes in the return value
+function fetchApObject(
+  url: string,
+): Promise<JsonValue<JsonPrimitive> | DocumentFragment> {
+  return fetch(url, {
+    headers: { Accept: "application/activity+json" },
+  }).then(
+    (response) => {
+      return response.json();
+    },
+  ).catch((error) => {
+    if (error instanceof TypeError) {
+      console.error("CORS error", error);
+      return cloneTemplate("cors-error");
+    } else {
+      console.error("Unhandled fetch error: ", error);
+      return cloneTemplate("fetch-error");
+    }
+  });
+}
+
+function cloneTemplate(id: string): DocumentFragment {
+  return (document.getElementById(id) as HTMLTemplateElement).content
+    .cloneNode(true) as DocumentFragment;
+}
+
 export async function handleApObject(_: Event) {
   const input = document.getElementById("ap-input") as HTMLInputElement;
   const searchResult = document.getElementById("searchresult") as HTMLElement;
+  let jsonOrErrorMessage: JsonValue<JsonPrimitive> | DocumentFragment;
   if (input.value === "") {
-    globalThis.history.replaceState({}, "", "/");
-    const emptyData =
-      (document.getElementById("empty-data") as HTMLTemplateElement).content
-        .cloneNode(true);
-    searchResult.replaceChildren(emptyData);
-    return;
-  }
-  let json: JsonValue<JsonPrimitive>;
-  try {
-    new URL(input.value);
-    json = await fetch(input.value, {
-      headers: { Accept: "application/activity+json" },
-    }).then(
-      (response) => {
-        return response.json();
-      },
-    ).catch((_error) => {
-      // TODO
-    });
+    jsonOrErrorMessage = cloneTemplate("empty-data");
+  } else if (isUrl(input.value)) {
     globalThis.history.replaceState({}, "", `/${input.value}`);
-  } catch {
+    jsonOrErrorMessage = await fetchApObject(input.value);
+    console.log(jsonOrErrorMessage);
+  } else {
     try {
-      json = JSON.parse(input.value);
+      jsonOrErrorMessage = JSON.parse(input.value) as JsonValue<JsonPrimitive>;
     } catch {
-      globalThis.history.replaceState({}, "", "/");
-      const invalidData =
-        (document.getElementById("invalid-data") as HTMLTemplateElement).content
-          .cloneNode(true);
-      searchResult.replaceChildren(invalidData);
+      jsonOrErrorMessage = cloneTemplate("invalid-data");
+    }
+  }
+  if (!(jsonOrErrorMessage instanceof DocumentFragment)) {
+    const json = jsonOrErrorMessage as JsonValue<JsonPrimitive>;
+    if (!isJsonObject(json)) {
+      jsonOrErrorMessage = cloneTemplate("invalid-activitystreams-object");
+    } else {
+      const validationResult = validate(json);
+      console.log(validationResult);
+      searchResult.replaceChildren(
+        renderValidationResult(json, validationResult),
+      );
       return;
     }
   }
-  if (!isJsonObject(json)) {
-    const invalidActivityStreamsObject = (document.getElementById(
-      "invalid-activitystreams-object",
-    ) as HTMLTemplateElement).content
-      .cloneNode(true);
-    searchResult.replaceChildren(invalidActivityStreamsObject);
-    return;
-  }
-  const validationResult = validate(json);
-  console.log(validationResult);
-  searchResult.replaceChildren(
-    renderValidationResult(json, validationResult),
-  );
+  const errorMessage = jsonOrErrorMessage;
+  globalThis.history.replaceState({}, "", "/");
+  searchResult.replaceChildren(errorMessage);
 }
 
 const legalTimeZones: string[] = [];
