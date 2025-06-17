@@ -55,7 +55,11 @@
         The supplied data is valid JSON, but not a valid ActivityStreams object…
       </template>
       <template id="cors-error">
-        The responding party doesn't allow our cross-origin request. Expect better guidance for this in future versions of this tool.
+        The responding party doesn't allow our cross-origin request.
+        Expect better guidance for this in future versions of this tool.
+        For now you can run
+        <pre><code>curl -L -H 'Accept: application/activity+json' &lt;URL&gt;</code></pre>
+        in a terminal and paste the JSON output into the input field.
       </template>
       <template id="fetch-error">
         Something else went wrong when fetching the data…
