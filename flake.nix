@@ -6,6 +6,8 @@
     flake-utils.url = "github:numtide/flake-utils";
     pre-commit-hooks.url = "github:cachix/git-hooks.nix";
     pre-commit-hooks.inputs.nixpkgs.follows = "nixpkgs";
+    napalm.url = "github:nix-community/napalm";
+    napalm.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs =
@@ -14,6 +16,7 @@
       nixpkgs,
       flake-utils,
       pre-commit-hooks,
+      napalm,
     }:
     flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-linux" ] (
       system:
@@ -22,7 +25,13 @@
       in
       {
 
-        packages = {
+        packages.default = napalm.legacyPackages."${system}".buildPackage ./. {
+          inherit (pkgs) nodejs;
+          npmCommands = [
+            "npm install"
+            "npm run build"
+          ];
+          nativeBuildInputs = with pkgs; [ deno ];
         };
 
         devShells.default = pkgs.mkShell rec {
