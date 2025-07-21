@@ -31,7 +31,16 @@
             "npm install"
             "npm run build"
           ];
-          nativeBuildInputs = with pkgs; [ deno ];
+          nativeBuildInputs = with pkgs; [
+            deno
+            typescript
+          ];
+          # This is just for reducing closure size, as we supply typescript vian nativeBuildInputs
+          customPatchPackages.typescript = pkgs: _: {
+            postInstall = ''
+              rm -r $out/package/*
+            '';
+          };
         };
 
         devShells.default = pkgs.mkShell rec {
