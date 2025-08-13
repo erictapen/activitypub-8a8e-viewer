@@ -9,37 +9,39 @@ import { assert, assertEquals } from "jsr:@std/assert";
 // );
 
 import {
+  AnnotatedJson,
+  isAnnotatedArray,
+  isAnnotatedObject,
   isAnnotation,
   isJsonArray,
   isJsonObject,
-  JsonAnnotation,
   JsonValue,
   rules,
 } from "../src/index.ts";
 
 function compareAnnotation(
-  annotated: JsonValue<JsonAnnotation>,
-  testStub: JsonValue<string>,
+  annotated: AnnotatedJson,
+  testStub: JsonValue,
 ) {
   if (isJsonObject(testStub)) {
     for (const name in testStub) {
       assert(
-        isJsonObject(annotated) && !isAnnotation(annotated),
+        isAnnotatedObject(annotated),
         `Not an object: ${annotated}`,
       );
-      assert(name in annotated, `${name} is not in ${annotated}`);
+      assert(name in annotated.object, `${name} is not in ${annotated}`);
       compareAnnotation(
-        annotated[name] as JsonValue<JsonAnnotation>,
-        testStub[name] as JsonValue<string>,
+        annotated.object[name]!,
+        testStub[name]!,
       );
     }
   } else if (isJsonArray(testStub)) {
-    assert(isJsonArray(annotated), `Not an array: ${annotated}`);
-    assertEquals(annotated.length, testStub.length);
+    assert(isAnnotatedArray(annotated), `Not an array: ${annotated}`);
+    assertEquals(annotated.array.length, testStub.length);
     for (let i = 0, len = testStub.length; i < len; i++) {
       compareAnnotation(
-        annotated[i] as JsonValue<JsonAnnotation>,
-        testStub[i] as JsonValue<string>,
+        annotated.array[i]!,
+        testStub[i]!,
       );
     }
   } else if (typeof testStub === "string") {

@@ -21,7 +21,7 @@ function isUrl(url: string): boolean {
 // possible error modes in the return value
 function fetchApObject(
   url: string,
-): Promise<JsonValue<JsonPrimitive> | DocumentFragment> {
+): Promise<JsonValue | DocumentFragment> {
   return fetch(url, {
     headers: { Accept: "application/activity+json" },
   }).then(
@@ -47,7 +47,7 @@ function cloneTemplate(id: string): DocumentFragment {
 export async function handleApObject(_: Event) {
   const input = document.getElementById("ap-input") as HTMLInputElement;
   const searchResult = document.getElementById("searchresult") as HTMLElement;
-  let jsonOrErrorMessage: JsonValue<JsonPrimitive> | DocumentFragment;
+  let jsonOrErrorMessage: JsonValue | DocumentFragment;
   if (input.value === "") {
     jsonOrErrorMessage = cloneTemplate("empty-data");
   } else if (isUrl(input.value)) {
@@ -56,17 +56,17 @@ export async function handleApObject(_: Event) {
     console.log(jsonOrErrorMessage);
   } else {
     try {
-      jsonOrErrorMessage = JSON.parse(input.value) as JsonValue<JsonPrimitive>;
+      jsonOrErrorMessage = JSON.parse(input.value) as JsonValue;
     } catch {
       jsonOrErrorMessage = cloneTemplate("invalid-data");
     }
   }
   if (!(jsonOrErrorMessage instanceof DocumentFragment)) {
-    const json = jsonOrErrorMessage as JsonValue<JsonPrimitive>;
+    const json = jsonOrErrorMessage as JsonValue;
     if (!isJsonObject(json)) {
       jsonOrErrorMessage = cloneTemplate("invalid-activitystreams-object");
     } else {
-      const validationResult = validate(json);
+      const validationResult: AnnotatedJson = validate(json);
       console.log(validationResult);
       searchResult.replaceChildren(
         renderValidationResult(json, validationResult),
@@ -91,16 +91,21 @@ function isValidUrl(str: string): boolean {
   }
 }
 
+// For expressing errors as return values
+type Result<T, E> =
+  | { ok: true; value: T }
+  | { ok: false; error: E };
+
 type AnnotationKind = "Violation" | "Warning" | "Note" | "Correct";
 
-export type JsonAnnotation = {
+export type Annotation = {
   kind: AnnotationKind;
   id: string | null;
   text: string;
   reference: string | null;
 };
 
-export function isAnnotation(value: unknown): value is JsonAnnotation {
+export function isAnnotation(value: unknown): value is Annotation {
   if (
     typeof value === "object" &&
     value !== null &&
@@ -109,7 +114,7 @@ export function isAnnotation(value: unknown): value is JsonAnnotation {
     "text" in value &&
     "reference" in value
   ) {
-    const { kind, id, text, reference } = value as JsonAnnotation;
+    const { kind, id, text, reference } = value as Annotation;
     return (
       (kind === "Violation" || kind === "Warning" || kind === "Note" ||
         kind === "Correct") &&
@@ -134,36 +139,108 @@ function isPrimitive(
   );
 }
 
-export type JsonValue<T> = T | { [key: string]: JsonValue<T> } | JsonValue<T>[];
+export type JsonValue =
+  | JsonPrimitive
+  | { [key: string]: JsonValue }
+  | JsonValue[];
 
-function isJsonValue<T>(value: unknown): value is JsonValue<T> {
-  return isJsonObject(value) || isJsonArray(value) ||
-    // This is technically not correct but good enough for now
-    (isPrimitive(value) || isAnnotation(value));
-}
-
-export function isJsonObject<T>(
+export function isJsonObject(
   value: unknown,
-): value is { [key: string]: JsonValue<T> } {
+): value is { [key: string]: JsonValue } {
   return !Array.isArray(value) && typeof value === "object" && value !== null &&
     Object.values(value).reduce((acc, v) => acc && isJsonValue(v), true);
 }
 
-export function isJsonArray<T>(value: unknown): value is JsonValue<T>[] {
+export function isJsonArray(value: unknown): value is JsonValue[] {
   return Array.isArray(value) &&
     value.reduce((acc, v) => acc && isJsonValue(v), true);
 }
 
+function isJsonValue(value: unknown): value is JsonValue {
+  return isJsonObject(value) || isJsonArray(value) || isPrimitive(value);
+}
+
+export type AnnotatedJson =
+  | Annotation
+  | { annotations: Annotation[]; object: { [key: string]: AnnotatedJson } }
+  | { annotations: Annotation[]; array: AnnotatedJson[] };
+
+export function isAnnotatedObject(
+  value: unknown,
+): value is {
+  annotations: Annotation[];
+  object: { [key: string]: AnnotatedJson };
+} {
+  return typeof value === "object" && value !== null &&
+    "annotations" in value && "object" in value;
+}
+
+export function isAnnotatedArray(
+  value: unknown,
+): value is { annotations: Annotation[]; array: AnnotatedJson[] } {
+  return typeof value === "object" && value !== null &&
+    "annotations" in value && "array" in value;
+}
+
+// Recursively merge an AnnotatedJson
+function mergeAnnotatedJson(
+  a: AnnotatedJson,
+  b: AnnotatedJson,
+): Result<AnnotatedJson, string> {
+  if (isAnnotation(a) && isAnnotation(b)) {
+    return { ok: false, error: `Can't merge two annotations ${a} ${b}` };
+  } else if (isAnnotatedObject(a) && isAnnotatedObject(b)) {
+    const mergedObject: { [key: string]: AnnotatedJson } = { ...a.object };
+    for (const [k, v] of Object.entries(b.object)) {
+      if (k in mergedObject) {
+        const merge = mergeAnnotatedJson(mergedObject[k]!, b.object[k]!);
+        if (merge.ok) {
+          mergedObject[k] = merge.value;
+        } else {
+          return merge;
+        }
+      } else {
+        mergedObject[k] = v;
+      }
+    }
+    return {
+      ok: true,
+      value: {
+        annotations: [...a.annotations, ...b.annotations],
+        object: mergedObject,
+      },
+    };
+  } else if (isAnnotatedArray(a) && isAnnotatedArray(b)) {
+    return {
+      ok: true,
+      value: {
+        annotations: [...a.annotations, ...b.annotations],
+        array: [...a.array, ...b.array],
+      },
+    };
+  } else {
+    const aType = (ann: AnnotatedJson) =>
+      isAnnotatedObject(ann)
+        ? "object"
+        : (isAnnotatedArray(ann) ? "array" : "annotation");
+    return {
+      ok: false,
+      error: `Can't merge as types differ: ${aType(a)}, ${aType(b)}`,
+    };
+  }
+}
+
 type Test = {
-  value: JsonValue<JsonPrimitive>;
-  result: JsonValue<string>;
+  value: JsonValue;
+  // TODO this needs to be able to express annotated objects and arrays
+  result: JsonValue;
 };
 
 type Rule = {
   name: string;
   validate: (
-    self: Record<string, JsonValue<JsonPrimitive>>,
-  ) => JsonValue<JsonAnnotation>;
+    self: { [key: string]: JsonValue },
+  ) => AnnotatedJson;
   tests: Test[];
 };
 
@@ -171,42 +248,56 @@ export const rules: Rule[] = [
   {
     name: "timezone attribute",
     validate: (self) => {
-      if (self["timezone"] === null) {
+      if (!("timezone" in self)) {
+        return { annotations: [], object: {} };
+      } else if (self["timezone"] === null) {
         return {
-          "timezone": {
-            kind: "Violation",
-            id: "NoTimezoneSet",
-            text: "The timezone property is either null or doesn't exist",
-            reference: null,
+          annotations: [],
+          object: {
+            "timezone": {
+              kind: "Violation",
+              id: "NoTimezoneSet",
+              text: "The timezone property is either null or doesn't exist",
+              reference: null,
+            },
           },
         };
       } else if (typeof self["timezone"] !== "string") {
         return {
-          "timezone": {
-            kind: "Violation",
-            id: "InvalidTimezone",
-            text: `The timezone {self["timezone"]} is not a string`,
-            reference:
-              "https://codeberg.org/fediverse/fep/src/branch/main/fep/8a8e/fep-8a8e.md#time-zone",
+          annotations: [],
+          object: {
+            "timezone": {
+              kind: "Violation",
+              id: "InvalidTimezone",
+              text: `The timezone {self["timezone"]} is not a string`,
+              reference:
+                "https://codeberg.org/fediverse/fep/src/branch/main/fep/8a8e/fep-8a8e.md#time-zone",
+            },
           },
         };
       } else if (legalTimeZones.includes(self["timezone"])) {
         return {
-          "timezone": {
-            kind: "Warning",
-            id: "InvalidTimezone",
-            text: `The timezone {self["timezone"]} is not a valid timezone`,
-            reference:
-              "https://codeberg.org/fediverse/fep/src/branch/main/fep/8a8e/fep-8a8e.md#time-zone",
+          annotations: [],
+          object: {
+            "timezone": {
+              kind: "Warning",
+              id: "InvalidTimezone",
+              text: `The timezone {self["timezone"]} is not a valid timezone`,
+              reference:
+                "https://codeberg.org/fediverse/fep/src/branch/main/fep/8a8e/fep-8a8e.md#time-zone",
+            },
           },
         };
       } else {
         return {
-          "timezone": {
-            kind: "Correct",
-            id: null,
-            reference: null,
-            text: "Valid timezone",
+          annotations: [],
+          object: {
+            "timezone": {
+              kind: "Correct",
+              id: null,
+              reference: null,
+              text: "Valid timezone",
+            },
           },
         };
       }
@@ -216,16 +307,16 @@ export const rules: Rule[] = [
       result: { timezone: "NoTimezoneSet" },
     }, {
       value: {},
-      result: { timezone: "InvalidTimezone" },
+      result: {},
     }],
   },
   {
     name: "remaining attributes",
     validate: (self) => {
-      const result: JsonValue<JsonAnnotation> = {};
+      const result: AnnotatedJson = { annotations: [], object: {} };
       for (const name in self) {
         if (!legalToplevelNames.includes(name)) {
-          result[name] = {
+          result.object[name] = {
             kind: "Note",
             id: "UnknownToplevelName",
             text:
@@ -246,36 +337,45 @@ export const rules: Rule[] = [
     validate: (self) => {
       if (isJsonArray(self["to"])) {
         return {
-          "to": (self["to"].map((url: JsonValue<JsonPrimitive>) =>
-            (typeof url === "string")
-              ? (isValidUrl(url)
-                ? {
-                  kind: "Correct",
-                  text: "Correct URL",
-                  id: null,
-                  reference: null,
-                }
-                : {
-                  kind: "Violation",
-                  text: "Not a valid URL",
-                  id: null,
-                  reference: null,
-                })
-              : {
-                kind: "Violation",
-                text: "url is not a string",
-                id: null,
-                reference: null,
-              }
-          )),
+          annotations: [],
+          object: {
+            "to": {
+              annotations: [],
+              array: (self["to"].map((url: JsonValue) =>
+                (typeof url === "string")
+                  ? (isValidUrl(url)
+                    ? {
+                      kind: "Correct",
+                      text: "Correct URL",
+                      id: null,
+                      reference: null,
+                    }
+                    : {
+                      kind: "Violation",
+                      text: "Not a valid URL",
+                      id: null,
+                      reference: null,
+                    })
+                  : {
+                    kind: "Violation",
+                    text: "url is not a string",
+                    id: null,
+                    reference: null,
+                  }
+              )),
+            },
+          },
         };
       } else {
         return {
-          "to": {
-            kind: "Violation",
-            id: "InvalidArray",
-            text: `The to field {self["to"]} is not an array`,
-            reference: null,
+          annotations: [],
+          object: {
+            "to": {
+              kind: "Violation",
+              id: "InvalidArray",
+              text: `The to field {self["to"]} is not an array`,
+              reference: null,
+            },
           },
         };
       }
@@ -288,12 +388,16 @@ export const rules: Rule[] = [
 ];
 
 export function validate(
-  apObject: Record<string, JsonValue<JsonPrimitive>>,
-): JsonValue<JsonAnnotation> {
-  let result = {};
+  apObject: Record<string, JsonValue>,
+): AnnotatedJson {
+  let result: AnnotatedJson = { annotations: [], object: {} };
   for (const rule of rules) {
-    // TODO this needs to do a deep merge
-    result = { ...result, ...(rule.validate(apObject)) };
+    const merge = mergeAnnotatedJson(result, rule.validate(apObject));
+    if (merge.ok) {
+      result = merge.value;
+    } else {
+      console.log(merge.error);
+    }
   }
   return result;
 }
@@ -307,7 +411,7 @@ const annotationSignifiers: Record<AnnotationKind, string> = {
 
 function details(
   summaryString: string,
-  vRes: JsonAnnotation,
+  vRes: Annotation,
 ): HTMLElement {
   const details = document.createElement("details");
   details.classList.add(vRes.kind);
@@ -329,8 +433,8 @@ function details(
 
 function renderObjectName(
   name: string,
-  value: JsonValue<JsonPrimitive>,
-  vRes: JsonValue<JsonAnnotation>,
+  value: JsonValue,
+  vRes: AnnotatedJson,
   indent: number,
   last: boolean,
 ): HTMLElement {
@@ -341,9 +445,7 @@ function renderObjectName(
       }`,
       vRes,
     );
-  } else if (
-    isJsonObject(value) && isJsonObject(vRes) && (!isAnnotation(vRes))
-  ) {
+  } else if (isJsonObject(value) && isAnnotatedObject(vRes)) {
     const result = document.createElement("div");
     const open = document.createElement("code");
     open.textContent = `${"  ".repeat(indent)}"${name}": {\n`;
@@ -351,12 +453,12 @@ function renderObjectName(
     const names = Object.keys(value);
     for (let i = 0, len = names.length; i < len; i++) {
       const name = names[i] as string;
-      if (value[name] !== undefined && vRes[name] !== undefined) {
+      if (value[name] !== undefined && vRes.object[name] !== undefined) {
         result.appendChild(
           renderObjectName(
             name,
-            value[name] as JsonValue<JsonPrimitive>,
-            vRes[name] as JsonValue<JsonAnnotation>,
+            value[name] as JsonValue,
+            vRes.object[name] as AnnotatedJson,
             indent + 1,
             i == len - 1,
           ),
@@ -367,7 +469,7 @@ function renderObjectName(
     close.textContent = `${"  ".repeat(indent)}}${last ? "" : ","}\n`;
     result.appendChild(close);
     return result;
-  } else if (isJsonArray(value) && isJsonArray(vRes)) {
+  } else if (isJsonArray(value) && isAnnotatedArray(vRes)) {
     const result = document.createElement("div");
     const open = document.createElement("code");
     open.textContent = `${"  ".repeat(indent)}"${name}": [\n`;
@@ -375,8 +477,8 @@ function renderObjectName(
     for (let i = 0, len = value.length; i < len; i++) {
       result.appendChild(
         renderValidationResult(
-          value[i] as JsonValue<JsonPrimitive>,
-          vRes[i] as JsonValue<JsonAnnotation>,
+          value[i] as JsonValue,
+          vRes.array[i] as AnnotatedJson,
           indent + 1,
           i == len - 1,
         ),
@@ -393,12 +495,12 @@ function renderObjectName(
 }
 
 export function renderValidationResult(
-  value: JsonValue<JsonPrimitive>,
-  vRes: JsonValue<JsonAnnotation>,
+  value: JsonValue,
+  vRes: AnnotatedJson,
   indent: number = 0,
   last: boolean = false,
 ): HTMLElement {
-  if (isJsonObject(value) && isJsonObject(vRes) && (!isAnnotation(vRes))) {
+  if (isJsonObject(value) && isAnnotatedObject(vRes)) {
     const result = document.createElement("div");
     const open = document.createElement("code");
     open.textContent = `${"  ".repeat(indent)}{\n`;
@@ -406,12 +508,12 @@ export function renderValidationResult(
     const names = Object.keys(value);
     for (let i = 0, len = names.length; i < len; i++) {
       const name = names[i] as string;
-      if (value[name] !== undefined && vRes[name] !== undefined) {
+      if (value[name] !== undefined && vRes.object[name] !== undefined) {
         result.appendChild(
           renderObjectName(
             name,
-            value[name] as JsonValue<JsonPrimitive>,
-            vRes[name] as JsonValue<JsonAnnotation>,
+            value[name] as JsonValue,
+            vRes.object[name] as AnnotatedJson,
             indent + 1,
             i == len - 1,
           ),
@@ -422,17 +524,17 @@ export function renderValidationResult(
     close.textContent = `${"  ".repeat(indent)}}\n`;
     result.appendChild(close);
     return result;
-  } else if (isJsonArray(value) && isJsonArray(vRes)) {
+  } else if (isJsonArray(value) && isAnnotatedArray(vRes)) {
     const result = document.createElement("div");
     const open = document.createElement("code");
     open.textContent = `${"  ".repeat(indent)}[\n`;
     result.appendChild(open);
-    console.assert(value.length == vRes.length);
+    console.assert(value.length == vRes.array.length);
     for (let i = 0, len = value.length; i < len; i++) {
       result.appendChild(
         renderValidationResult(
-          value[i] as JsonValue<JsonPrimitive>,
-          vRes[i] as JsonValue<JsonAnnotation>,
+          value[i] as JsonValue,
+          vRes.array[i] as AnnotatedJson,
           indent + 1,
           i == len - 1,
         ),
