@@ -69,7 +69,7 @@ export async function handleApObject(_: Event) {
       const validationResult: AnnotatedJson = validate(json);
       console.log(validationResult);
       searchResult.replaceChildren(
-        renderValidationResult(json, validationResult),
+        renderAnnotatedJson(json, validationResult),
       );
       return;
     }
@@ -80,7 +80,6 @@ export async function handleApObject(_: Event) {
 }
 
 const legalTimeZones: string[] = [];
-const legalToplevelNames: string[] = ["timezone"];
 
 function isValidUrl(str: string): boolean {
   try {
@@ -311,28 +310,6 @@ export const rules: Rule[] = [
     }],
   },
   {
-    name: "remaining attributes",
-    validate: (self) => {
-      const result: AnnotatedJson = { annotations: [], object: {} };
-      for (const name in self) {
-        if (!legalToplevelNames.includes(name)) {
-          result.object[name] = {
-            kind: "Note",
-            id: "UnknownToplevelName",
-            text:
-              `${name} is not defined in the standard and is therefore not checked`,
-            reference: null,
-          };
-        }
-      }
-      return result;
-    },
-    tests: [{
-      value: { someattribute: "somevalue" },
-      result: { someattribute: "UnknownToplevelName" },
-    }],
-  },
-  {
     name: "to attribute",
     validate: (self) => {
       if (isJsonArray(self["to"])) {
@@ -396,7 +373,7 @@ export function validate(
     if (merge.ok) {
       result = merge.value;
     } else {
-      console.log(merge.error);
+      console.error(merge.error);
     }
   }
   return result;
@@ -409,16 +386,21 @@ const annotationSignifiers: Record<AnnotationKind, string> = {
   "Correct": "✅",
 };
 
+function code(text: string, indent: number): HTMLElement {
+  const element = document.createElement("code");
+  element.textContent = "  ".repeat(indent) + text;
+  return element;
+}
+
 function details(
   summaryString: string,
   vRes: Annotation,
+  indent: number,
 ): HTMLElement {
   const details = document.createElement("details");
   details.classList.add(vRes.kind);
-  const code = document.createElement("code");
-  code.textContent = summaryString;
   const summary = document.createElement("summary");
-  summary.appendChild(code);
+  summary.appendChild(code(summaryString, indent));
   const signifier = document.createElement("span");
   signifier.classList.add("unselectable");
   signifier.textContent = annotationSignifiers[vRes.kind];
@@ -434,28 +416,77 @@ function details(
 function renderObjectName(
   name: string,
   value: JsonValue,
+  indent: number,
+  last: boolean,
+): HTMLElement {
+  if (isPrimitive(value)) {
+    const result = document.createElement("div");
+    result.appendChild(code(
+      `"${name}": ${JSON.stringify(value)}${last ? "" : ","}`,
+      indent,
+    ));
+    return result;
+  } else if (isJsonObject(value)) {
+    const result = document.createElement("div");
+    result.appendChild(code(`"${name}": {\n`, indent));
+    const names = Object.keys(value);
+    for (let i = 0, len = names.length; i < len; i++) {
+      const name = names[i] as string;
+      if (value[name] !== undefined) {
+        result.appendChild(
+          renderObjectName(
+            name,
+            value[name] as JsonValue,
+            indent + 1,
+            i == len - 1,
+          ),
+        );
+      }
+    }
+    result.appendChild(code(`${last ? "" : ","}\n`, indent));
+    return result;
+  } else if (isJsonArray(value)) {
+    const result = document.createElement("div");
+    result.appendChild(code(`"${name}": [\n`, indent));
+    for (let i = 0, len = value.length; i < len; i++) {
+      result.appendChild(
+        renderJson(
+          value[i] as JsonValue,
+          indent + 1,
+          i == len - 1,
+        ),
+      );
+    }
+    result.appendChild(code(`]${last ? "" : ","}\n`, indent));
+    return result;
+  }
+
+  throw new Error(`Unhandled case: ${value satisfies never}`);
+}
+
+// Render an annotated JSON name/value pair
+function renderAnnotatedObjectName(
+  name: string,
+  value: JsonValue,
   vRes: AnnotatedJson,
   indent: number,
   last: boolean,
 ): HTMLElement {
   if (isPrimitive(value) && isAnnotation(vRes)) {
     return details(
-      `${"  ".repeat(indent)}"${name}": ${JSON.stringify(value)}${
-        last ? "" : ","
-      }`,
+      `"${name}": ${JSON.stringify(value)}${last ? "" : ","}`,
       vRes,
+      indent,
     );
   } else if (isJsonObject(value) && isAnnotatedObject(vRes)) {
     const result = document.createElement("div");
-    const open = document.createElement("code");
-    open.textContent = `${"  ".repeat(indent)}"${name}": {\n`;
-    result.appendChild(open);
+    result.appendChild(code(`"${name}": {\n`, indent));
     const names = Object.keys(value);
     for (let i = 0, len = names.length; i < len; i++) {
       const name = names[i] as string;
       if (value[name] !== undefined && vRes.object[name] !== undefined) {
         result.appendChild(
-          renderObjectName(
+          renderAnnotatedObjectName(
             name,
             value[name] as JsonValue,
             vRes.object[name] as AnnotatedJson,
@@ -463,20 +494,25 @@ function renderObjectName(
             i == len - 1,
           ),
         );
+      } else {
+        result.appendChild(
+          renderObjectName(
+            name,
+            value[name] as JsonValue,
+            indent + 1,
+            i == len - 1,
+          ),
+        );
       }
     }
-    const close = document.createElement("code");
-    close.textContent = `${"  ".repeat(indent)}}${last ? "" : ","}\n`;
-    result.appendChild(close);
+    result.appendChild(code(`${last ? "" : ","}\n`, indent));
     return result;
   } else if (isJsonArray(value) && isAnnotatedArray(vRes)) {
     const result = document.createElement("div");
-    const open = document.createElement("code");
-    open.textContent = `${"  ".repeat(indent)}"${name}": [\n`;
-    result.appendChild(open);
+    result.appendChild(code(`"${name}": [\n`, indent));
     for (let i = 0, len = value.length; i < len; i++) {
       result.appendChild(
-        renderValidationResult(
+        renderAnnotatedJson(
           value[i] as JsonValue,
           vRes.array[i] as AnnotatedJson,
           indent + 1,
@@ -484,17 +520,64 @@ function renderObjectName(
         ),
       );
     }
-    const close = document.createElement("code");
-    close.textContent = `${" ".repeat(indent * 2)}]${last ? "" : ","}\n`;
-    result.appendChild(close);
+    result.appendChild(code(`]${last ? "" : ","}\n`, indent));
     return result;
   } else {
-    // This should be unreachable
-    return document.createElement("div");
+    // value doesn't have valid annotation
+    return renderObjectName(name, value, indent, last);
   }
 }
 
-export function renderValidationResult(
+function renderJson(
+  value: JsonValue,
+  indent: number = 0,
+  last: boolean = false,
+): HTMLElement {
+  if (isJsonObject(value)) {
+    const result = document.createElement("div");
+    result.appendChild(code(`{\n`, indent));
+    const names = Object.keys(value);
+    for (let i = 0, len = names.length; i < len; i++) {
+      const name = names[i] as string;
+      if (value[name] !== undefined) {
+        result.appendChild(
+          renderObjectName(
+            name,
+            value[name] as JsonValue,
+            indent + 1,
+            i == len - 1,
+          ),
+        );
+      }
+    }
+    result.appendChild(code(`}\n`, indent));
+    return result;
+  } else if (isJsonArray(value)) {
+    const result = document.createElement("div");
+    result.appendChild(code(`}[\n`, indent));
+    for (let i = 0, len = value.length; i < len; i++) {
+      result.appendChild(
+        renderJson(
+          value[i] as JsonValue,
+          indent + 1,
+          i == len - 1,
+        ),
+      );
+    }
+    result.appendChild(code(`]${last ? "" : ","}\n`, indent));
+    return result;
+  } else if (isPrimitive(value)) {
+    const result = document.createElement("div");
+    result.appendChild(
+      code(`${JSON.stringify(value)}${last ? "" : ","}`, indent),
+    );
+    return result;
+  }
+  throw new Error(`Unhandled case: ${value satisfies never}`);
+}
+
+// Render an annotated JSON value
+export function renderAnnotatedJson(
   value: JsonValue,
   vRes: AnnotatedJson,
   indent: number = 0,
@@ -502,15 +585,13 @@ export function renderValidationResult(
 ): HTMLElement {
   if (isJsonObject(value) && isAnnotatedObject(vRes)) {
     const result = document.createElement("div");
-    const open = document.createElement("code");
-    open.textContent = `${"  ".repeat(indent)}{\n`;
-    result.appendChild(open);
+    result.appendChild(code(`{\n`, indent));
     const names = Object.keys(value);
     for (let i = 0, len = names.length; i < len; i++) {
       const name = names[i] as string;
       if (value[name] !== undefined && vRes.object[name] !== undefined) {
         result.appendChild(
-          renderObjectName(
+          renderAnnotatedObjectName(
             name,
             value[name] as JsonValue,
             vRes.object[name] as AnnotatedJson,
@@ -518,21 +599,26 @@ export function renderValidationResult(
             i == len - 1,
           ),
         );
+      } else {
+        result.appendChild(
+          renderObjectName(
+            name,
+            value[name] as JsonValue,
+            indent + 1,
+            i == len - 1,
+          ),
+        );
       }
     }
-    const close = document.createElement("code");
-    close.textContent = `${"  ".repeat(indent)}}\n`;
-    result.appendChild(close);
+    result.appendChild(code(`}\n`, indent));
     return result;
   } else if (isJsonArray(value) && isAnnotatedArray(vRes)) {
-    const result = document.createElement("div");
-    const open = document.createElement("code");
-    open.textContent = `${"  ".repeat(indent)}[\n`;
-    result.appendChild(open);
     console.assert(value.length == vRes.array.length);
+    const result = document.createElement("div");
+    result.appendChild(code(`}[\n`, indent));
     for (let i = 0, len = value.length; i < len; i++) {
       result.appendChild(
-        renderValidationResult(
+        renderAnnotatedJson(
           value[i] as JsonValue,
           vRes.array[i] as AnnotatedJson,
           indent + 1,
@@ -540,17 +626,16 @@ export function renderValidationResult(
         ),
       );
     }
-    const close = document.createElement("code");
-    close.textContent = `${" ".repeat(indent * 2)}]${last ? "" : ","}\n`;
-    result.appendChild(close);
+    result.appendChild(code(`]${last ? "" : ","}\n`, indent));
     return result;
   } else if (isPrimitive(value) && isAnnotation(vRes)) {
     return details(
-      `${"  ".repeat(indent)}${JSON.stringify(value)}${last ? "" : ","}`,
+      `${JSON.stringify(value)}${last ? "" : ","}`,
       vRes,
+      indent,
     );
   } else {
-    // This should be unreachable
-    return document.createElement("div");
+    // value doesn't have valid annotation
+    return renderJson(value, indent, last);
   }
 }
