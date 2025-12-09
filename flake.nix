@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Kerstin Humm <kerstin@erictapen.name>
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 {
   description = "ActivityPub Event Web Component";
 
@@ -26,12 +30,14 @@
           nixfmt-rfc-style.enable = true;
           denofmt.enable = true;
           denolint.enable = true;
+          reuse.enable = true;
         };
       in
       {
 
         packages.default = napalm.legacyPackages."${system}".buildPackage ./. {
           inherit (pkgs) nodejs;
+
           npmCommands = [
             "npm install"
             "npm run build"
@@ -39,12 +45,25 @@
           nativeBuildInputs = with pkgs; [
             deno
             typescript
+            nodejs
+            # For the NPM IBM Plex fonts packages
+            (pkgs.writeShellScriptBin "ibmtelemetry" ''
+              echo "Don't gather telemetry"
+            '')
           ];
-          # This is just for reducing closure size, as we supply typescript vian nativeBuildInputs
-          customPatchPackages.typescript = pkgs: _: {
-            postInstall = ''
-              rm -r $out/package/*
-            '';
+          # This is just for reducing closure size, as we supply typescript via nativeBuildInputs
+          customPatchPackages = {
+            typescript = pkgs: _: {
+              postInstall = ''
+                rm -r $out/package/*
+              '';
+            };
+            # For the NPM IBM Plex fonts packages
+            "@ibm/telemetry-js" = pkgs: _: {
+              postInstall = ''
+                rm -r $out/package/*
+              '';
+            };
           };
         };
 
@@ -62,6 +81,9 @@
             })
             shellHook
             ;
+
+          # For the NPM IBM Plex fonts packages
+          env.IBM_TELEMETRY_DISABLED = "true";
 
           nativeBuildInputs = with pkgs; [
             typescript

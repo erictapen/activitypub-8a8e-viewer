@@ -6,6 +6,10 @@
     "start": "nginx-8a8e",
     "test": "deno test --config tsconfig.json"
   },
+  "dependencies": {
+    "@ibm/plex-sans": "^1.1.0",
+    "@ibm/plex-mono": "^1.1.0"
+  },
   "devDependencies": {
     "typescript": "^4.5.5"
   }
