@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Kerstin Humm <kerstin@erictapen.name>
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 export function init() {
   document.getElementById("ap-input")?.addEventListener(
     "input",
