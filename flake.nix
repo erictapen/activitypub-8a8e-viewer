@@ -22,6 +22,11 @@
       system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
+        sandboxablePreCommitHooks = {
+          nixfmt-rfc-style.enable = true;
+          denofmt.enable = true;
+          denolint.enable = true;
+        };
       in
       {
 
@@ -44,7 +49,19 @@
         };
 
         devShells.default = pkgs.mkShell rec {
-          inherit (self.checks.${system}.pre-commit-check) shellHook;
+          inherit
+            (pre-commit-hooks.lib.${system}.run {
+              src = ./.;
+              hooks = sandboxablePreCommitHooks // {
+                denotest = {
+                  enable = true;
+                  entry = "${pkgs.lib.getExe pkgs.deno} test --config tsconfig.json";
+                  pass_filenames = false;
+                };
+              };
+            })
+            shellHook
+            ;
 
           nativeBuildInputs = with pkgs; [
             typescript
@@ -56,16 +73,7 @@
 
         checks.pre-commit-check = pre-commit-hooks.lib.${system}.run {
           src = ./.;
-          hooks = {
-            nixfmt-rfc-style.enable = true;
-            denofmt.enable = true;
-            denolint.enable = true;
-            denotest = {
-              enable = true;
-              entry = "npm run test";
-              pass_filenames = false;
-            };
-          };
+          hooks = sandboxablePreCommitHooks;
         };
 
       }
