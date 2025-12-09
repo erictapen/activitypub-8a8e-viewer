@@ -86,15 +86,6 @@ export async function handleApObject(_: Event) {
 const legalTimeZones: string[] = [];
 const legalToplevelNames: string[] = ["timezone"];
 
-function isValidUrl(str: string): boolean {
-  try {
-    new URL(str);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 // For expressing errors as return values
 type Result<T, E> =
   | { ok: true; value: T }
@@ -347,7 +338,7 @@ export const rules: Rule[] = [
               annotations: [],
               array: (self["to"].map((url: JsonValue) =>
                 (typeof url === "string")
-                  ? (isValidUrl(url)
+                  ? (isUrl(url)
                     ? {
                       kind: "Correct",
                       text: "Correct URL",
