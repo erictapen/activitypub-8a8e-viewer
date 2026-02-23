@@ -51,6 +51,20 @@
               echo "Don't gather telemetry"
             '')
           ];
+          postPatch = pkgs.lib.optionalString (self ? rev) (
+            let
+              lastModified =
+                let
+                  sub = start: len: builtins.substring start len self.lastModifiedDate;
+                in
+                "${sub 0 4}-${sub 4 2}-${sub 6 2}T${sub 8 2}:${sub 10 2}:${sub 12 2}Z";
+
+            in
+            ''
+              substituteInPlace index.html \
+                --replace-fail 'Source: dirty, Last modified: unknown' 'Source: <a href="https://github.com/erictapen/activitypub-8a8e-viewer/commit/${self.rev}">${self.shortRev}</a>, Last modified: ${lastModified}'
+            ''
+          );
           # This is just for reducing closure size, as we supply typescript via nativeBuildInputs
           customPatchPackages = {
             typescript = pkgs: _: {
