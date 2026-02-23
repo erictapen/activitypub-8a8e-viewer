@@ -112,6 +112,7 @@ input#ap-input {
 }
 
 #searchresult {
+  margin-top: 0.5em;
   background: lightgrey;
 }
 
