@@ -62,7 +62,9 @@
             in
             ''
               substituteInPlace index.html \
-                --replace-fail 'Source: dirty, Last modified: unknown' 'Source: <a href="https://github.com/erictapen/activitypub-8a8e-viewer/commit/${self.rev}">${self.shortRev}</a>, Last modified: ${lastModified}'
+                --replace-fail \
+                'Source: dirty, Last modified: unknown' \
+                'Source: <a href="https://github.com/erictapen/activitypub-8a8e-viewer/commit/${self.rev}">${self.shortRev}</a>, Last modified: ${lastModified}'
             ''
           );
           # This is just for reducing closure size, as we supply typescript via nativeBuildInputs
