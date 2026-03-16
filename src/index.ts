@@ -91,7 +91,15 @@ type Result<T, E> =
   | { ok: true; value: T }
   | { ok: false; error: E };
 
-type AnnotationKind = "Violation" | "Warning" | "Note" | "Correct";
+type AnnotationKind =
+  // The value violates a MUST
+  | "Violation"
+  | // The value violates a SHOULD
+  "Warning"
+  | // Some other info that could be interesting to the implementer
+  "Note"
+  | // The annotated value complies with the standard
+  "Correct";
 
 export type Annotation = {
   kind: AnnotationKind;
@@ -336,7 +344,7 @@ export const rules: Rule[] = [
           object: {
             "to": {
               annotations: [],
-              array: (self["to"].map((url: JsonValue) =>
+              array: self["to"].map((url: JsonValue) =>
                 (typeof url === "string")
                   ? (isUrl(url)
                     ? {
@@ -357,7 +365,7 @@ export const rules: Rule[] = [
                     id: null,
                     reference: null,
                   }
-              )),
+              ),
             },
           },
         };
