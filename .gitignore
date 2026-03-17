@@ -7,3 +7,4 @@ result*
 dist/
 node_modules/
 .nginx/
+notes.md

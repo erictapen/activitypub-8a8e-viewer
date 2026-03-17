@@ -27,7 +27,7 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
         sandboxablePreCommitHooks = {
-          nixfmt-rfc-style.enable = true;
+          nixfmt.enable = true;
           denofmt.enable = true;
           denolint.enable = true;
           reuse.enable = true;
